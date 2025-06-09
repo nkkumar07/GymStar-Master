@@ -220,7 +220,8 @@ export default function AddTrainer() {
                       className={`trainer-input ${errors[index]?.image ? "input-error" : ""}`}
                     />
                     {trainer.image && (
-                      <img src={URL.createObjectURL(trainer.image)} alt="Preview" className="small-preview" />
+                      <img src={URL.createObjectURL(trainer.image)} alt={"Trainer Preview"}
+                        className="small-preview" />
                     )}
                     {errors[index]?.image && <small className="error-text">{errors[index].image}</small>}
                   </td>

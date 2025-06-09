@@ -228,8 +228,9 @@ export default function SliderManager({ onEdit, onAdd }) {
             {filteredSliders.length === 0 ? (
               <tr>
                 <td colSpan="6" className="slider-no-found">
-                  No sliders found matching "{searchTerm}"
+                  No sliders found matching {`"${searchTerm}"`}
                 </td>
+
               </tr>
             ) : (
               filteredSliders.map((slider) => (

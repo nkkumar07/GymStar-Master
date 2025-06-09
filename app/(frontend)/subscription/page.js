@@ -20,7 +20,7 @@ const SubscriptionPage = () => {
   // Get user data and authentication token from context
   const { user, token } = useUser();
   const router = useRouter();
-  
+
   // State for subscriptions data and loading status
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +33,7 @@ const SubscriptionPage = () => {
       return;
     }
     fetchSubscriptions();
-  }, [user, token]);
-
+  }, [user, token, router]);
   /**
    * Fetches user subscriptions and associated membership plans
    */
@@ -54,7 +53,7 @@ const SubscriptionPage = () => {
 
       // Get unique membership plan IDs from subscriptions
       const uniquePlanIds = [...new Set(subscriptionsData.map(sub => sub.membership_id))];
-      
+
       // Fetch details for each membership plan
       const planRequests = uniquePlanIds.map(id =>
         axios.get(`${API_URL}/membership/get/${id}`, {
@@ -79,6 +78,7 @@ const SubscriptionPage = () => {
         toast.error("Failed to fetch subscription details");
         console.error("Subscription fetch error:", error.message);
       }
+
     } finally {
       setLoading(false);
     }
@@ -95,9 +95,10 @@ const SubscriptionPage = () => {
     const startDate = new Date(start).getTime();
     const endDate = new Date(end).getTime();
 
-    if (startDate > now) return 'Active'; // Future start date
-    if (endDate < now) return 'Expired'; // Past end date
-    return 'Active'; // Currently active
+    if (startDate > now) return 'Upcoming';
+    else if (endDate < now) return 'Expired';
+    else return 'Active';
+    // Currently active
   };
 
   // Loading state
@@ -118,7 +119,8 @@ const SubscriptionPage = () => {
           <div className="motivation-icon">💪</div>
           <h2 className="subscription-empty-title">Your Fitness Journey Starts Here!</h2>
           <p className="subscription-empty-message">
-            You don't have any active subscriptions yet. This is your chance to transform your life!
+            You don&#39;t have any active subscriptions yet.
+            This is your chance to transform your life!
           </p>
 
           <div className="motivational-lines">
@@ -134,6 +136,7 @@ const SubscriptionPage = () => {
           <p className="subscription-empty-note">
             Join today and get <strong>free access</strong> to our starter workout program!
           </p>
+
         </div>
       </div>
     );
@@ -227,7 +230,7 @@ const SubscriptionPage = () => {
                         <div className="subscription-plan-text">
                           {membershipPlans[sub.membership_id] || `Plan #${sub.membership_id}`}
                         </div>
-                        {sub.promocode && sub.promocode !== "Null" && (
+                        {sub.promocode && sub.promocode.toLowerCase() !== "null" && (
                           <div className="subscription-promo-badge">
                             Promo: {sub.promocode}
                           </div>

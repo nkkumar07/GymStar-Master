@@ -216,10 +216,11 @@ export default function TrainerManager({ onEdit, onAdd }) {
                   <td>
                     <img
                       src={`${API_URL}${trainer.image}`}
-                      alt={trainer.name}
+                      alt={trainer.name}  // This is correct
                       className="tm-trainer-img"
                       style={{ width: "50px", height: "50px", borderRadius: "8px" }}
                     />
+
                   </td>
                   <td>{trainer.name}</td>
                   <td>{trainer.designation}</td>

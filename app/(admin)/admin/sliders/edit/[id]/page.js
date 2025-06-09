@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
 import { API_URL } from "@/utils/api";
 import { FaArrowLeft, FaImage } from "react-icons/fa";
+import Image from "next/image";
 
 export default function EditSlider() {
   const [formData, setFormData] = useState({
@@ -192,19 +193,23 @@ export default function EditSlider() {
                     Preview:
                   </strong>
                   <br />
-                  <img
+                  <Image
                     src={
                       formData.image
                         ? URL.createObjectURL(formData.image)
                         : existingImage
                     }
                     alt="Preview"
+                    width={200}
+                    height={120}
                     style={{
-                      maxWidth: "200px",
                       marginTop: "8px",
                       borderRadius: "6px",
+                      height: "auto",
                     }}
+                    unoptimized
                   />
+
                 </div>
               )}
             </td>
