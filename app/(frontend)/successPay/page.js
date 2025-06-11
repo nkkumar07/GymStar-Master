@@ -9,8 +9,15 @@ import { FaDumbbell, FaHeartbeat } from "react-icons/fa";
 import { loadStripe } from '@stripe/stripe-js';
 import { API_URL } from "@/utils/api";
 
-const runConfetti = () => {
-  if (typeof window !== "undefined") {
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
+const SuccessPay = () => {
+  const searchParams = useSearchParams();
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const runConfetti = () => {
     import("canvas-confetti").then((confetti) => {
       confetti.default({
         particleCount: 100,
@@ -36,13 +43,7 @@ const runConfetti = () => {
         });
       }, 300);
     });
-  }
-};
-
-const SuccessPay = () => {
-  const searchParams = useSearchParams();
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [isSuccess, setIsSuccess] = useState(false);
+  };
 
   useEffect(() => {
     const fetchSessionAndProcess = async () => {
@@ -55,55 +56,35 @@ const SuccessPay = () => {
       }
 
       try {
-        // Initialize Stripe properly
-        const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-        
-        if (!stripe) {
-          throw new Error("Stripe failed to initialize");
+        // Verify payment through your API route
+        const verificationResponse = await fetch(`/api/verify-payment?session_id=${session_id}`);
+        const verificationData = await verificationResponse.json();
+
+        if (!verificationResponse.ok || !verificationData.success) {
+          throw new Error(verificationData.error || "Payment verification failed");
         }
 
-        // Fetch the session from your backend instead of directly from Stripe
-        const sessionResponse = await fetch(`/api/stripe/session?session_id=${session_id}`);
-        const session = await sessionResponse.json();
-
-        if (!session || session.error) {
-          throw new Error(session?.error || "Failed to retrieve session");
-        }
-
-        // Validate session metadata exists
-        if (!session.metadata) {
-          toast.error("Session metadata is missing.");
-          setIsProcessing(false);
-          return;
-        }
-
-        const {
-          user_id,
-          membership_id,
-          price,
-          originalPrice,
-          discount,
-          final_price,
-          plan_type,
-          promocode,
-        } = session.metadata;
-
-        if (!user_id || !membership_id || !final_price || !plan_type) {
-          toast.error("Missing subscription metadata.");
-          setIsProcessing(false);
-          return;
-        }
+        const { 
+          user_id, 
+          membership_id, 
+          price, 
+          originalPrice, 
+          discount, 
+          final_price, 
+          plan_type, 
+          promocode 
+        } = verificationData.session.metadata;
 
         // Get user's previous subscriptions
         const prevSubResponse = await fetch(`${API_URL}/subscription/by_user/${user_id}`);
-        const prevSubs = await prevSubResponse.json();
+        const prevSubs = prevSubResponse.ok ? await prevSubResponse.json() : [];
 
         let newStartDate = new Date();
         
         if (Array.isArray(prevSubs) && prevSubs.length > 0) {
           const latestSub = prevSubs.reduce((latest, current) => {
             return new Date(current.expiry_date) > new Date(latest.expiry_date) ? current : latest;
-          });
+          }, prevSubs[0]);
 
           const latestExpiry = new Date(latestSub.expiry_date);
           if (latestExpiry > new Date()) {
@@ -111,21 +92,20 @@ const SuccessPay = () => {
           }
         }
 
+        // Calculate expiry date
         const expiryDate = new Date(newStartDate);
-        switch (plan_type) {
-          case "monthly":
-            expiryDate.setMonth(expiryDate.getMonth() + 1);
-            break;
-          case "half-yearly":
-            expiryDate.setMonth(expiryDate.getMonth() + 6);
-            break;
-          case "yearly":
-            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-            break;
-          default:
-            throw new Error("Invalid plan type");
-        }
+        const durationMap = {
+          monthly: () => expiryDate.setMonth(expiryDate.getMonth() + 1),
+          "half-yearly": () => expiryDate.setMonth(expiryDate.getMonth() + 6),
+          yearly: () => expiryDate.setFullYear(expiryDate.getFullYear() + 1)
+        };
 
+        if (!durationMap[plan_type]) {
+          throw new Error("Invalid plan type");
+        }
+        durationMap[plan_type]();
+
+        // Create subscription
         const response = await fetch(`${API_URL}/subscription`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -137,7 +117,7 @@ const SuccessPay = () => {
             subtotal: parseFloat(originalPrice || price),
             discount: parseFloat(discount || 0),
             total: parseFloat(final_price),
-            promocode,
+            promocode: promocode || "None",
             payment_status: "paid",
           }),
         });
@@ -146,13 +126,14 @@ const SuccessPay = () => {
           throw new Error("Failed to create subscription");
         }
 
+        // Clear cart and show success
         localStorage.removeItem("cart");
-        toast.success("Payment successful! Subscription activated.");
         runConfetti();
         setIsSuccess(true);
+        toast.success("Payment successful! Subscription activated.");
       } catch (err) {
-        console.error("Payment confirmation error:", err);
-        toast.error(err.message || "Failed to verify payment.");
+        console.error("Payment processing error:", err);
+        toast.error(err.message || "Failed to complete payment processing");
       } finally {
         setIsProcessing(false);
       }
@@ -188,28 +169,30 @@ const SuccessPay = () => {
               <p className="text-green-600 font-semibold mt-4">
                 Membership activated successfully!
               </p>
+              <div className="small-benefits-box">
+                <h4 className="small-benefits-title">Your Premium Benefits:</h4>
+                <ul className="small-benefits-list">
+                  <li>Unlimited access to all gym facilities</li>
+                  <li>Personal training session</li>
+                  <li>Premium workout plans</li>
+                  <li>Nutrition guides</li>
+                </ul>
+              </div>
+              <Link href="/subscription" className="small-cta-button">
+                Go to Your Subscription
+              </Link>
             </>
           )}
 
-          <div className="small-benefits-box">
-            <h4 className="small-benefits-title">Your Premium Benefits:</h4>
-            <ul className="small-benefits-list">
-              <li>Unlimited access to all gym facilities</li>
-              <li>Personal training session</li>
-              <li>Premium workout plans</li>
-              <li>Nutrition guides</li>
-            </ul>
-          </div>
+          {!isProcessing && !isSuccess && (
+            <Link href="/membership" className="small-cta-button">
+              Back to Membership Plans
+            </Link>
+          )}
 
           <p className="small-support-text">
             Need help? <a href="mailto:support@gymstar.com">support@gymstar.com</a>
           </p>
-
-          {!isProcessing && (
-            <Link href="/subscription" className="small-cta-button">
-              Go to Your Subscription
-            </Link>
-          )}
         </div>
       </div>
     </div>
