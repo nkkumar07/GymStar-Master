@@ -1,5 +1,6 @@
 "use client";
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -7,8 +8,9 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { GiGymBag } from "react-icons/gi";
 import { FaDumbbell, FaHeartbeat } from "react-icons/fa";
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from "@stripe/stripe-js";
 import { API_URL } from "@/utils/api";
+
 const runConfetti = () => {
   if (typeof window !== "undefined") {
     import("canvas-confetti").then((confetti) => {
@@ -16,23 +18,23 @@ const runConfetti = () => {
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#ff0000', '#00ff00', '#0000ff'],
+        colors: ["#ff0000", "#00ff00", "#0000ff"],
       });
-      
+
       setTimeout(() => {
         confetti.default({
           particleCount: 50,
           angle: 60,
           spread: 55,
           origin: { x: 0 },
-          colors: ['#ffffff', '#4CAF50'],
+          colors: ["#ffffff", "#4CAF50"],
         });
         confetti.default({
           particleCount: 50,
           angle: 120,
           spread: 55,
           origin: { x: 1 },
-          colors: ['#ffffff', '#2196F3'],
+          colors: ["#ffffff", "#2196F3"],
         });
       }, 300);
     });
@@ -47,7 +49,6 @@ const SuccessPay = () => {
   useEffect(() => {
     const fetchSessionAndProcess = async () => {
       const session_id = searchParams.get("session_id");
-
       if (!session_id) {
         toast.error("Missing session ID.");
         setIsProcessing(false);
@@ -55,26 +56,17 @@ const SuccessPay = () => {
       }
 
       try {
-        // Initialize Stripe properly
-        const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-        
-        if (!stripe) {
-          throw new Error("Stripe failed to initialize");
-        }
+        const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+        if (!stripeKey) throw new Error("Stripe public key is not defined");
 
-        // Fetch the session from your backend instead of directly from Stripe
-        const sessionResponse = await fetch(`/api/stripe/session?session_id=${session_id}`);
-        const session = await sessionResponse.json();
+        const stripe = await loadStripe(stripeKey);
+        if (!stripe) throw new Error("Stripe failed to initialize");
+
+        const sessionRes = await fetch(`/api/stripe/session?session_id=${session_id}`);
+        const session = await sessionRes.json();
 
         if (!session || session.error) {
           throw new Error(session?.error || "Failed to retrieve session");
-        }
-
-        // Validate session metadata exists
-        if (!session.metadata) {
-          toast.error("Session metadata is missing.");
-          setIsProcessing(false);
-          return;
         }
 
         const {
@@ -86,7 +78,7 @@ const SuccessPay = () => {
           final_price,
           plan_type,
           promocode,
-        } = session.metadata;
+        } = session.metadata || {};
 
         if (!user_id || !membership_id || !final_price || !plan_type) {
           toast.error("Missing subscription metadata.");
@@ -94,39 +86,25 @@ const SuccessPay = () => {
           return;
         }
 
-        // Get user's previous subscriptions
-        const prevSubResponse = await fetch(`${API_URL}/subscription/by_user/${user_id}`);
-        const prevSubs = await prevSubResponse.json();
+        const prevSubRes = await fetch(`${API_URL}/subscription/by_user/${user_id}`);
+        const prevSubs = prevSubRes.ok ? await prevSubRes.json() : [];
 
         let newStartDate = new Date();
-        
         if (Array.isArray(prevSubs) && prevSubs.length > 0) {
-          const latestSub = prevSubs.reduce((latest, current) => {
-            return new Date(current.expiry_date) > new Date(latest.expiry_date) ? current : latest;
-          });
-
+          const latestSub = prevSubs.reduce((latest, current) =>
+            new Date(current.expiry_date) > new Date(latest.expiry_date) ? current : latest
+          );
           const latestExpiry = new Date(latestSub.expiry_date);
-          if (latestExpiry > new Date()) {
-            newStartDate = latestExpiry;
-          }
+          if (latestExpiry > new Date()) newStartDate = latestExpiry;
         }
 
         const expiryDate = new Date(newStartDate);
-        switch (plan_type) {
-          case "monthly":
-            expiryDate.setMonth(expiryDate.getMonth() + 1);
-            break;
-          case "half-yearly":
-            expiryDate.setMonth(expiryDate.getMonth() + 6);
-            break;
-          case "yearly":
-            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-            break;
-          default:
-            throw new Error("Invalid plan type");
-        }
+        if (plan_type === "monthly") expiryDate.setMonth(expiryDate.getMonth() + 1);
+        else if (plan_type === "half-yearly") expiryDate.setMonth(expiryDate.getMonth() + 6);
+        else if (plan_type === "yearly") expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        else throw new Error("Invalid plan type");
 
-        const response = await fetch(`${API_URL}/subscription`, {
+        const createSub = await fetch(`${API_URL}/subscription`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -137,14 +115,12 @@ const SuccessPay = () => {
             subtotal: parseFloat(originalPrice || price),
             discount: parseFloat(discount || 0),
             total: parseFloat(final_price),
-            promocode,
+            promocode: promocode || "None",
             payment_status: "paid",
           }),
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to create subscription");
-        }
+        if (!createSub.ok) throw new Error("Failed to create subscription");
 
         localStorage.removeItem("cart");
         toast.success("Payment successful! Subscription activated.");
@@ -158,7 +134,9 @@ const SuccessPay = () => {
       }
     };
 
-    fetchSessionAndProcess();
+    if (typeof window !== "undefined") {
+      fetchSessionAndProcess();
+    }
   }, [searchParams]);
 
   return (
@@ -188,28 +166,30 @@ const SuccessPay = () => {
               <p className="text-green-600 font-semibold mt-4">
                 Membership activated successfully!
               </p>
+              <div className="small-benefits-box">
+                <h4 className="small-benefits-title">Your Premium Benefits:</h4>
+                <ul className="small-benefits-list">
+                  <li>Unlimited access to all gym facilities</li>
+                  <li>Personal training session</li>
+                  <li>Premium workout plans</li>
+                  <li>Nutrition guides</li>
+                </ul>
+              </div>
+              <Link href="/subscription" className="small-cta-button">
+                Go to Your Subscription
+              </Link>
             </>
           )}
 
-          <div className="small-benefits-box">
-            <h4 className="small-benefits-title">Your Premium Benefits:</h4>
-            <ul className="small-benefits-list">
-              <li>Unlimited access to all gym facilities</li>
-              <li>Personal training session</li>
-              <li>Premium workout plans</li>
-              <li>Nutrition guides</li>
-            </ul>
-          </div>
+          {!isProcessing && !isSuccess && (
+            <Link href="/membership" className="small-cta-button">
+              Back to Membership Plans
+            </Link>
+          )}
 
           <p className="small-support-text">
             Need help? <a href="mailto:support@gymstar.com">support@gymstar.com</a>
           </p>
-
-          {!isProcessing && (
-            <Link href="/subscription" className="small-cta-button">
-              Go to Your Subscription
-            </Link>
-          )}
         </div>
       </div>
     </div>
