@@ -1,16 +1,10 @@
 "use client";
-<<<<<<< HEAD
-=======
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
 
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { GiGymBag } from "react-icons/gi";
 import { FaDumbbell, FaHeartbeat } from "react-icons/fa";
-<<<<<<< HEAD
 import { API_URL } from "@/utils/api";
 import { loadStripe } from "@stripe/stripe-js";
 
@@ -24,19 +18,12 @@ const SuccessPay = () => {
   const runConfetti = () => {
     if (typeof window === 'undefined') return;
 
-=======
-import { loadStripe } from "@stripe/stripe-js";
-import { API_URL } from "@/utils/api";
-
-const runConfetti = () => {
-  if (typeof window !== "undefined") {
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
     import("canvas-confetti").then((confetti) => {
       confetti.default({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ["#ff0000", "#00ff00", "#0000ff"],
+        colors: ['#ff0000', '#00ff00', '#0000ff'],
       });
 
       setTimeout(() => {
@@ -45,14 +32,14 @@ const runConfetti = () => {
           angle: 60,
           spread: 55,
           origin: { x: 0 },
-          colors: ["#ffffff", "#4CAF50"],
+          colors: ['#ffffff', '#4CAF50'],
         });
         confetti.default({
           particleCount: 50,
           angle: 120,
           spread: 55,
           origin: { x: 1 },
-          colors: ["#ffffff", "#2196F3"],
+          colors: ['#ffffff', '#2196F3'],
         });
       }, 300);
     });
@@ -71,34 +58,14 @@ const runConfetti = () => {
     }
 
     const fetchSessionAndProcess = async () => {
-<<<<<<< HEAD
       try {
 
-        const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-        if (!stripeKey) throw new Error("Stripe public key is not defined");
-=======
-      const session_id = searchParams.get("session_id");
-      if (!session_id) {
-        toast.error("Missing session ID.");
-        setIsProcessing(false);
-        return;
-      }
-
-      try {
         const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
         if (!stripeKey) throw new Error("Stripe public key is not defined");
 
         const stripe = await loadStripe(stripeKey);
         if (!stripe) throw new Error("Stripe failed to initialize");
 
-        const sessionRes = await fetch(`/api/stripe/session?session_id=${session_id}`);
-        const session = await sessionRes.json();
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
-
-        const stripe = await loadStripe(stripeKey);
-        if (!stripe) throw new Error("Stripe failed to initialize");
-
-<<<<<<< HEAD
 
 
         const verificationResponse = await fetch(`/api/verify-payment?session_id=${session_id}`);
@@ -108,8 +75,6 @@ const runConfetti = () => {
           throw new Error(verificationData.error || "Payment verification failed");
         }
 
-=======
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
         const {
           user_id,
           membership_id,
@@ -118,7 +83,6 @@ const runConfetti = () => {
           discount,
           final_price,
           plan_type,
-<<<<<<< HEAD
           promocode
         } = verificationData.session.metadata;
 
@@ -132,31 +96,13 @@ const runConfetti = () => {
             return new Date(current.expiry_date) > new Date(latest.expiry_date) ? current : latest;
           }, prevSubs[0]);
 
-=======
-          promocode,
-        } = session.metadata || {};
-
-        if (!user_id || !membership_id || !final_price || !plan_type) {
-          toast.error("Missing subscription metadata.");
-          setIsProcessing(false);
-          return;
-        }
-
-        const prevSubRes = await fetch(`${API_URL}/subscription/by_user/${user_id}`);
-        const prevSubs = prevSubRes.ok ? await prevSubRes.json() : [];
-
-        let newStartDate = new Date();
-        if (Array.isArray(prevSubs) && prevSubs.length > 0) {
-          const latestSub = prevSubs.reduce((latest, current) =>
-            new Date(current.expiry_date) > new Date(latest.expiry_date) ? current : latest
-          );
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
           const latestExpiry = new Date(latestSub.expiry_date);
-          if (latestExpiry > new Date()) newStartDate = latestExpiry;
+          if (latestExpiry > new Date()) {
+            newStartDate = latestExpiry;
+          }
         }
 
         const expiryDate = new Date(newStartDate);
-<<<<<<< HEAD
         const durationMap = {
           monthly: () => expiryDate.setMonth(expiryDate.getMonth() + 1),
           "half-yearly": () => expiryDate.setMonth(expiryDate.getMonth() + 6),
@@ -167,14 +113,8 @@ const runConfetti = () => {
           throw new Error("Invalid plan type");
         }
         durationMap[plan_type]();
-=======
-        if (plan_type === "monthly") expiryDate.setMonth(expiryDate.getMonth() + 1);
-        else if (plan_type === "half-yearly") expiryDate.setMonth(expiryDate.getMonth() + 6);
-        else if (plan_type === "yearly") expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        else throw new Error("Invalid plan type");
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
 
-        const createSub = await fetch(`${API_URL}/subscription`, {
+        const response = await fetch(`${API_URL}/subscription`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -190,7 +130,9 @@ const runConfetti = () => {
           }),
         });
 
-        if (!createSub.ok) throw new Error("Failed to create subscription");
+        if (!response.ok) {
+          throw new Error("Failed to create subscription");
+        }
 
         if (typeof window !== 'undefined') {
           localStorage.removeItem("cart");
@@ -207,15 +149,8 @@ const runConfetti = () => {
       }
     };
 
-<<<<<<< HEAD
     fetchSessionAndProcess();
   }, []);
-=======
-    if (typeof window !== "undefined") {
-      fetchSessionAndProcess();
-    }
-  }, [searchParams]);
->>>>>>> da070be28c9c07cdd79861649da1c0f16c434dc5
 
   return (
     <div className="success-wrapper">
