@@ -1,6 +1,6 @@
-export default {
-  reactStrictMode: true,
-  experimental: {
-    serverActions: true,
-  },
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    trailingSlash: false,
 };
+
+export default nextConfig;
