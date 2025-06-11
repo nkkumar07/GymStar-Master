@@ -6,6 +6,7 @@ import { useUser } from '@/context/UserContext';
 import axios from 'axios';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { API_URL } from "@/utils/api";
 
 /**
  * Profile Page Component
@@ -129,7 +130,7 @@ const ProfilePage = () => {
     try {
       // Make API request to update user
       const response = await axios.put(
-        `http://127.0.0.1:8000/users/update/${user.id}`,
+        `${API_URL}/users/update/${user.id}`,
         updatedData,
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import axios from 'axios';
+import { API_URL } from "@/utils/api";
 
 /**
  * Change Password Page Component
@@ -66,7 +67,7 @@ const ChangePasswordPage = () => {
       
       // Make API request to update password
       await axios.put(
-        `http://127.0.0.1:8000/users/update-password/${user?.id}`,
+        `${API_URL}/users/update-password/${user?.id}`,
         formData,
         {
           headers: {
