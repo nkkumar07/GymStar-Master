@@ -1,4 +1,6 @@
-// next.config.mjs
 export default {
   reactStrictMode: true,
+  experimental: {
+    serverActions: true,
+  },
 };

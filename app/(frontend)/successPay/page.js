@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { GiGymBag } from "react-icons/gi";
@@ -11,16 +10,13 @@ import { API_URL } from "@/utils/api";
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 
-
-
 const SuccessPay = () => {
-  const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const runConfetti = () => {
     if (typeof window === 'undefined') return;
-    
+
     import("canvas-confetti").then((confetti) => {
       confetti.default({
         particleCount: 100,
@@ -28,7 +24,7 @@ const SuccessPay = () => {
         origin: { y: 0.6 },
         colors: ['#ff0000', '#00ff00', '#0000ff'],
       });
-      
+
       setTimeout(() => {
         confetti.default({
           particleCount: 50,
@@ -49,17 +45,19 @@ const SuccessPay = () => {
   };
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const session_id = params.get("session_id");
+
+    if (!session_id) {
+      toast.error("Missing session ID.");
+      setIsProcessing(false);
+      return;
+    }
+
     const fetchSessionAndProcess = async () => {
-      const session_id = searchParams.get("session_id");
-
-      if (!session_id) {
-        toast.error("Missing session ID.");
-        setIsProcessing(false);
-        return;
-      }
-
       try {
-        // Verify payment through your API route
         const verificationResponse = await fetch(`/api/verify-payment?session_id=${session_id}`);
         const verificationData = await verificationResponse.json();
 
@@ -67,23 +65,22 @@ const SuccessPay = () => {
           throw new Error(verificationData.error || "Payment verification failed");
         }
 
-        const { 
-          user_id, 
-          membership_id, 
-          price, 
-          originalPrice, 
-          discount, 
-          final_price, 
-          plan_type, 
-          promocode 
+        const {
+          user_id,
+          membership_id,
+          price,
+          originalPrice,
+          discount,
+          final_price,
+          plan_type,
+          promocode
         } = verificationData.session.metadata;
 
-        // Get user's previous subscriptions
         const prevSubResponse = await fetch(`${API_URL}/subscription/by_user/${user_id}`);
         const prevSubs = prevSubResponse.ok ? await prevSubResponse.json() : [];
 
         let newStartDate = new Date();
-        
+
         if (Array.isArray(prevSubs) && prevSubs.length > 0) {
           const latestSub = prevSubs.reduce((latest, current) => {
             return new Date(current.expiry_date) > new Date(latest.expiry_date) ? current : latest;
@@ -95,7 +92,6 @@ const SuccessPay = () => {
           }
         }
 
-        // Calculate expiry date
         const expiryDate = new Date(newStartDate);
         const durationMap = {
           monthly: () => expiryDate.setMonth(expiryDate.getMonth() + 1),
@@ -108,7 +104,6 @@ const SuccessPay = () => {
         }
         durationMap[plan_type]();
 
-        // Create subscription
         const response = await fetch(`${API_URL}/subscription`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -129,11 +124,10 @@ const SuccessPay = () => {
           throw new Error("Failed to create subscription");
         }
 
-        // Clear cart - only if window is available
         if (typeof window !== 'undefined') {
           localStorage.removeItem("cart");
         }
-        
+
         runConfetti();
         setIsSuccess(true);
         toast.success("Payment successful! Subscription activated.");
@@ -146,7 +140,7 @@ const SuccessPay = () => {
     };
 
     fetchSessionAndProcess();
-  }, [searchParams]);
+  }, []);
 
   return (
     <div className="success-wrapper">
