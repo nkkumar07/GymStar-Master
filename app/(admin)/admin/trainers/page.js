@@ -200,7 +200,7 @@ export default function TrainerManager({ onEdit, onAdd }) {
             {filteredTrainers.length === 0 ? (
               <tr>
                 <td colSpan="9" className="tm-no-trainers">
-                  🔍 No trainers found matching "{searchTerm}"
+                  🔍 No trainers found matching &quot;{searchTerm}&quot;
                 </td>
               </tr>
             ) : (

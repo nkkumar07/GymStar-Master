@@ -34,19 +34,18 @@ const ProfilePage = () => {
    * 2. Initialize form data when user data is available
    */
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-    } else {
-      setFormData({
-        name: `${user.first_name} ${user.last_name}`,
-        mobile: user.mobile || '',
-        age: user.age || '',
-        gender: user.gender || '',
-        email: user.email || '',
-      });
-    }
-  }, [user]);
-
+  if (!user) {
+    router.push('/login');
+  } else {
+    setFormData({
+      name: `${user.first_name} ${user.last_name}`,
+      mobile: user.mobile || '',
+      age: user.age || '',
+      gender: user.gender || '',
+      email: user.email || '',
+    });
+  }
+}, [user, router]); 
   /**
    * Handles user logout
    */

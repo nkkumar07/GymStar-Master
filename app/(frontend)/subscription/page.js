@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useUser } from '@/context/UserContext';
 import { Loader } from 'lucide-react';
@@ -9,109 +9,97 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { API_URL } from "@/utils/api";
 
-
-
-
-/**
- * Subscription Page Component
- * Displays user's subscription history and current membership status
- */
 const SubscriptionPage = () => {
-  // Get user data and authentication token from context
   const { user, token } = useUser();
   const router = useRouter();
-
-  // State for subscriptions data and loading status
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [membershipPlans, setMembershipPlans] = useState({});
 
-  // Fetch subscriptions when user or token changes
-  useEffect(() => {
-    if (!user || !token) {
-      router.push('/join');
-      return;
-    }
-    fetchSubscriptions();
-  }, [user, token, router]);
-  /**
-   * Fetches user subscriptions and associated membership plans
-   */
-  const fetchSubscriptions = async () => {
-    if (!user) return;
+  const fetchSubscriptions = useCallback(async () => {
+    if (!user || !token) return;
 
     try {
-      // Get user subscriptions
       const res = await axios.get(`${API_URL}/subscription/by_user/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Sort subscriptions by start date (newest first)
       const subscriptionsData = res.data || [];
-      const sorted = subscriptionsData.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+      const sorted = subscriptionsData.sort((a, b) =>
+        new Date(b.start_date) - new Date(a.start_date)
+      );
       setSubscriptions(sorted);
 
-      // Get unique membership plan IDs from subscriptions
       const uniquePlanIds = [...new Set(subscriptionsData.map(sub => sub.membership_id))];
-
-      // Fetch details for each membership plan
       const planRequests = uniquePlanIds.map(id =>
         axios.get(`${API_URL}/membership/get/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
       );
 
-      // Process all plan requests
       const planResponses = await Promise.all(planRequests);
       const plans = {};
       planResponses.forEach((res) => {
-        const plan = res.data;
-        plans[plan.id] = plan.name; // Map plan ID to plan name
+        if (res.data) {
+          plans[res.data.id] = res.data.name;
+        }
       });
 
       setMembershipPlans(plans);
     } catch (error) {
-      // Handle errors
-      if (error.response?.status === 404) {
-        setSubscriptions([]); // No subscriptions found
+      if (error.response?.status === 401) {
+        router.push('/join');
+      } else if (error.response?.status === 404) {
+        setSubscriptions([]);
       } else {
-        toast.error("Failed to fetch subscription details");
-        console.error("Subscription fetch error:", error.message);
+        toast.error(error.response?.data?.message || "Failed to fetch subscription details");
       }
-
+      console.error("Subscription error:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, token, router]);
 
-  /**
-   * Determines subscription status based on dates
-   * @param {string} start - Start date string
-   * @param {string} end - End date string
-   * @returns {string} - Subscription status ('Active' or 'Expired')
-   */
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!user || !token) {
+        router.push('/join');
+        return;
+      }
+      await fetchSubscriptions();
+    };
+
+    if (isMounted) {
+      loadData();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, token, router, fetchSubscriptions]); 
+
   const getSubscriptionStatus = (start, end) => {
     const now = new Date().getTime();
     const startDate = new Date(start).getTime();
     const endDate = new Date(end).getTime();
 
     if (startDate > now) return 'Upcoming';
-    else if (endDate < now) return 'Expired';
-    else return 'Active';
-    // Currently active
+    if (endDate < now) return 'Expired';
+    return 'Active';
   };
 
   // Loading state
   if (loading) {
     return (
-      <div className="subscription-loading-container">
-        <Loader className="subscription-loading-icon animate-spin" />
-        <span className="subscription-loading-text">Loading your subscriptions...</span>
+      <div className="text-center py-10">
+        <Loader className="animate-spin mx-auto" size={48} />
+        <p className="mt-4 text-lg">Loading your subscription details...</p>
       </div>
     );
   }
 
-  // Empty state (no subscriptions)
   if (!subscriptions || subscriptions.length === 0) {
     return (
       <div className="subscription-empty-container">
@@ -119,24 +107,20 @@ const SubscriptionPage = () => {
           <div className="motivation-icon">💪</div>
           <h2 className="subscription-empty-title">Your Fitness Journey Starts Here!</h2>
           <p className="subscription-empty-message">
-            You don&#39;t have any active subscriptions yet.
+            You don&apos;t have any active subscriptions yet.
             This is your chance to transform your life!
           </p>
-
           <div className="motivational-lines">
             <p>🔥 <strong>1,000+ members</strong> are already achieving their goals</p>
             <p>⭐ <strong>92% success rate</strong> with our proven training programs</p>
             <p>⏱️ <strong>Limited-time offer:</strong> Get 20% off your first 6 months</p>
           </div>
-
           <Link className="subscription-empty-button" href="/membership">
             Discover Your Perfect Plan
           </Link>
-
           <p className="subscription-empty-note">
             Join today and get <strong>free access</strong> to our starter workout program!
           </p>
-
         </div>
       </div>
     );
@@ -144,7 +128,6 @@ const SubscriptionPage = () => {
 
   return (
     <div className="subscription-page-container">
-      {/* Hero Header Section */}
       <div className="container-fluid bg-primary p-5 bg-hero mb-5">
         <div className="row py-5">
           <div className="col-12 text-center">
@@ -152,9 +135,9 @@ const SubscriptionPage = () => {
               Your Subscription History
             </h1>
             <div className="d-flex justify-content-center gap-3">
-              <a href="/" className="btn btn-primary py-md-3 px-md-5 btn-hero">
+              <Link href="/" className="btn btn-primary py-md-3 px-md-5 btn-hero">
                 Home
-              </a>
+              </Link>
               <Link className="btn btn-light py-md-3 px-md-5 btn-hero" href="/membership">
                 Membership Plans
               </Link>
@@ -163,9 +146,7 @@ const SubscriptionPage = () => {
         </div>
       </div>
 
-      {/* Main Content Section */}
       <div className="subscription-main-content">
-        {/* Stats Summary Cards */}
         <div className="subscription-stats-grid">
           <div className="subscription-stat-card">
             <h3 className="subscription-stat-title">Total Subscriptions</h3>

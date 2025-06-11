@@ -45,61 +45,61 @@ const MembershipPage = () => {
     /**
      * Fetches all necessary data when component mounts or user changes
      */
-   useEffect(() => {
-    const fetchData = async () => {
-        try {
-            console.log("API_URL:", API_URL);
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                console.log("API_URL:", API_URL);
 
-            // 1. Fetch all active membership plans
-            console.log("Fetching membership plans...");
-            const plansResponse = await axios.get(`${API_URL}/membership/get_all`);
-            const activePlans = plansResponse.data.filter(plan => plan.status === "active");
-            console.log("Active plans:", activePlans);
+                // 1. Fetch all active membership plans
+                console.log("Fetching membership plans...");
+                const plansResponse = await axios.get(`${API_URL}/membership/get_all`);
+                const activePlans = plansResponse.data.filter(plan => plan.status === "active");
+                console.log("Active plans:", activePlans);
 
-            // 2. Fetch user subscriptions if logged in
-            let subscriptions = [];
-            if (user?.id) {
-                try {
-                    console.log("Fetching user subscriptions...");
-                    const subsResponse = await axios.get(`${API_URL}/subscription/by_user/${user.id}`);
-                    subscriptions = subsResponse.data;
-                    console.log("User subscriptions:", subscriptions);
-                } catch (subsError) {
-                    if (subsError.response?.status === 404) {
-                        console.warn("No subscriptions found for user.");
-                        subscriptions = [];
-                    } else {
-                        console.error("Error fetching user subscriptions:", subsError);
+                // 2. Fetch user subscriptions if logged in
+                let subscriptions = [];
+                if (user?.id) {
+                    try {
+                        console.log("Fetching user subscriptions...");
+                        const subsResponse = await axios.get(`${API_URL}/subscription/by_user/${user.id}`);
+                        subscriptions = subsResponse.data;
+                        console.log("User subscriptions:", subscriptions);
+                    } catch (subsError) {
+                        if (subsError.response?.status === 404) {
+                            console.warn("No subscriptions found for user.");
+                            subscriptions = [];
+                        } else {
+                            console.error("Error fetching user subscriptions:", subsError);
+                        }
                     }
                 }
+                setUserSubscriptions(subscriptions);
+
+                // 3. Enrich each plan with its additional info
+                const enrichedPlans = await Promise.all(
+                    activePlans.map(async (plan) => {
+                        try {
+                            console.log(`Fetching plan info for plan ID ${plan.id}...`);
+                            const infoRes = await axios.get(`${API_URL}/planInfo/get_by_membership_id/${plan.id}`);
+                            const planInfo = infoRes.data[0];
+                            return { ...plan, planInfo };
+                        } catch (infoErr) {
+                            console.error(`Error fetching plan info for ID ${plan.id}:`, infoErr);
+                            return { ...plan, planInfo: null };
+                        }
+                    })
+                );
+
+                setPlans(enrichedPlans);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
             }
-            setUserSubscriptions(subscriptions);
+        };
 
-            // 3. Enrich each plan with its additional info
-            const enrichedPlans = await Promise.all(
-                activePlans.map(async (plan) => {
-                    try {
-                        console.log(`Fetching plan info for plan ID ${plan.id}...`);
-                        const infoRes = await axios.get(`${API_URL}/planInfo/get_by_membership_id/${plan.id}`);
-                        const planInfo = infoRes.data[0];
-                        return { ...plan, planInfo };
-                    } catch (infoErr) {
-                        console.error(`Error fetching plan info for ID ${plan.id}:`, infoErr);
-                        return { ...plan, planInfo: null };
-                    }
-                })
-            );
-
-            setPlans(enrichedPlans);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    fetchData();
-}, [user]);
+        fetchData();
+    }, [user]);
 
     /**
      * Handles subscription button click
@@ -170,8 +170,8 @@ const MembershipPage = () => {
     const isExtended = (planId) => {
         if (!user?.id || userSubscriptions.length === 0) return false;
         const now = new Date();
-        const activeSubs = userSubscriptions.filter(sub => 
-            sub.membership_id === planId && 
+        const activeSubs = userSubscriptions.filter(sub =>
+            sub.membership_id === planId &&
             new Date(sub.expiry_date) > now &&
             sub.is_extended === true
         );
@@ -199,18 +199,18 @@ const MembershipPage = () => {
         if (!user?.id || userSubscriptions.length === 0) return null;
         const now = new Date();
         const activeSubs = userSubscriptions.filter(sub => new Date(sub.expiry_date) > now);
-        
+
         if (activeSubs.length === 0) return null;
-        
+
         // Find the corresponding plans for active subscriptions
-        const activePlans = activeSubs.map(sub => 
+        const activePlans = activeSubs.map(sub =>
             plans.find(plan => plan.id === sub.membership_id)
         ).filter(Boolean);
-        
+
         if (activePlans.length === 0) return null;
-        
+
         // Return the plan with highest final_price
-        return activePlans.reduce((max, plan) => 
+        return activePlans.reduce((max, plan) =>
             plan.final_price > max.final_price ? plan : max, activePlans[0]);
     };
 
@@ -258,10 +258,12 @@ const MembershipPage = () => {
                             Membership Plans
                         </h1>
                         <div className="d-flex justify-content-center gap-3">
-                            <a href="/" className="btn btn-primary py-md-3 px-md-5 btn-hero">
+                            <Link href="/" className="btn btn-primary py-md-3 px-md-5 btn-hero">
                                 Home
-                            </a>
-                            <Link className="btn btn-light py-md-3 px-md-5 btn-hero" href="/subscription">Subscription</Link>
+                            </Link>
+                            <Link className="btn btn-light py-md-3 px-md-5 btn-hero" href="/subscription">
+                                Subscription
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -272,8 +274,8 @@ const MembershipPage = () => {
                 {hasTwoOrMoreActiveSubscriptions() && (
                     <div className="alert alert-warning text-center mb-4">
                         <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                        You've reached the maximum number of active subscriptions (2). 
-                        You can't subscribe to additional plans until one of your current subscriptions expires.
+                        You&apos;ve reached the maximum number of active subscriptions (2).
+                        You can&apos;t subscribe to additional plans until one of your current subscriptions expires.
                     </div>
                 )}
 
@@ -281,8 +283,8 @@ const MembershipPage = () => {
                 <div className="text-center mb-5">
                     <h2 className="text-uppercase mb-3">Transform Your Life Today</h2>
                     <p className="lead mb-4">
-                        "The only bad workout is the one that didn't happen. Invest in yourself today and
-                        unlock your full potential with our expert guidance and world-class facilities."
+                        &quot;The only bad workout is the one that didn&apos;t happen. Invest in yourself today and
+                        unlock your full potential with our expert guidance and world-class facilities.&quot;
                     </p>
                     <p className="mb-4">
                         Every great journey begins with a single step. Your fitness transformation starts here.
@@ -435,8 +437,8 @@ const MembershipPage = () => {
                 <div className="text-center mt-5">
                     <h4 className="mb-3">Still Hesitating?</h4>
                     <p>
-                        "Your body can stand almost anything. It's your mind you need to convince.
-                        Take the leap - your future self will thank you!"
+                        Your body can stand almost anything. It&apos;s your mind you need to convince.
+                        &quot;Take the leap - your future self will thank you!&quot;
                     </p>
                 </div>
             </div>

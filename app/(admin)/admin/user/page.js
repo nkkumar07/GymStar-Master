@@ -219,7 +219,7 @@ export default function UserManager({ onEdit, onAdd }) {
             {filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan="8" className="no-users">
-                  No users found matching "{searchTerm}"
+                  No users found matching &quot;{searchTerm}&quot;
                 </td>
               </tr>
             ) : (

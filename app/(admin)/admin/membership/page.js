@@ -61,7 +61,7 @@ export default function MembershipPlanManager({ onEdit, onAdd }) {
       // For each membership, first find and delete its plan info
       for (const id of idList) {
         // Fetch plan info for this membership
-       const infoRes = await fetch(`${API_URL}/planInfo/get_by_membership_id/${id}`);
+        const infoRes = await fetch(`${API_URL}/planInfo/get_by_membership_id/${id}`);
         const infoData = await infoRes.json();
 
         if (infoData && infoData.length > 0) {
@@ -76,7 +76,7 @@ export default function MembershipPlanManager({ onEdit, onAdd }) {
 
       // Then delete the membership plans
       const deletePlanRequests = idList.map((id) =>
-       fetch(`${API_URL}/membership/delete/${id}`, {
+        fetch(`${API_URL}/membership/delete/${id}`, {
           method: "DELETE",
         })
       );
@@ -222,144 +222,144 @@ export default function MembershipPlanManager({ onEdit, onAdd }) {
 
   return (
     <div className="membership-manager-wrapper">
-  <div className="membership-header-bar">
-    <div className="membership-header">
-      <button onClick={goBack} className="membership-btn-back">
-        <FaArrowLeft /> Back
-      </button>
-    </div>
-    <h2 className="membership-title">Membership Plan Manager</h2>
-    <div className="membership-actions">
-      <input
-        type="text"
-        placeholder="Search by name..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="membership-search-input"
-      />
-      <Link href="/admin/membership/add">
-        <button className="membership-add-button" onClick={onAdd}>
-          <FaPlus /> Add
-        </button>
-      </Link>
-      <button onClick={downloadPDF} className="membership-download-button">
-        <FaFilePdf /> PDF
-      </button>
-      <button onClick={downloadExcel} className="membership-download-button">
-        <FaFileExcel /> Excel
-      </button>
-      <button
-        onClick={() => {
-          if (selectedIds.length === 0) {
-            toast.warning("⚠️ Please select at least one plan to delete.");
-          } else {
-            handleDelete(selectedIds);
-          }
-        }}
-        className="membership-delete-button"
-      >
-        <FaTrash /> Delete ({selectedIds.length})
-      </button>
-    </div>
-  </div>
-
-  <div className="membership-table-container">
-    <table className="membership-table">
-      <thead>
-        <tr>
-          <th>
-            <input type="checkbox" checked={selectAll} onChange={toggleSelectAll} />
-          </th>
-          <th>Name</th>
-          <th>Price</th>
-          <th>Discount %</th>
-          <th>Final Price</th>
-          <th>Duration</th>
-          <th>Plan Info</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filteredPlans.length === 0 ? (
-          <tr>
-            <td colSpan="9" className="membership-no-results">
-              🔍 No plans found matching "{searchTerm}"
-            </td>
-          </tr>
-        ) : (
-          filteredPlans.map((plan) => (
-            <tr key={plan.id}>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(plan.id)}
-                  onChange={() => toggleSelectOne(plan.id)}
-                />
-              </td>
-              <td>{plan.name}</td>
-              <td>₹{plan.price}</td>
-              <td>{plan.discount}%</td>
-              <td>₹{plan.final_price}</td>
-              <td>{plan.duration}</td>
-              <td>
-                <button className="membership-view-button" onClick={() => handleViewInfo(plan.id)}>
-                  <FaEye /> View
-                </button>
-              </td>
-              <td>
-                <button
-                  className={`membership-status-toggle ${plan.status === "active" ? "active" : "inactive"}`}
-                  onClick={() => handleStatusToggle(plan)}
-                >
-                  {plan.status === "active" ? (
-                    <><FaCheckCircle /> Active</>
-                  ) : (
-                    <><FaTimesCircle /> Inactive</>
-                  )}
-                </button>
-              </td>
-              <td className="membership-action-buttons">
-                <Link href={`/admin/membership/edit/${plan.id}`}>
-                  <button className="membership-edit-button" onClick={() => onEdit?.(plan.id)}>
-                    <FaEdit />
-                  </button>
-                </Link>
-                <button className="membership-delete-button" onClick={() => handleDelete([plan.id])}>
-                  <FaTrash />
-                </button>
-              </td>
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-
-  {showModal && (
-    <div className="membership-modal-overlay">
-      <div className="membership-modal-content">
-        <button className="membership-close-button" onClick={() => setShowModal(false)}>
-          <FaArrowLeft /> Back
-        </button>
-        <h3 className="membership-modal-title">📋 Plan Information</h3>
-        {infoLoading ? (
-          <p>🔄 Loading...</p>
-        ) : planInfo ? (
-          <ul className="membership-plan-info-list">
-            {Object.entries(planInfo)
-              .filter(([key]) => key.startsWith("line_"))
-              .map(([key, value]) => (
-                <li key={key}>✅ {value}</li>
-              ))}
-          </ul>
-        ) : (
-          <p>No info available for this plan.</p>
-        )}
+      <div className="membership-header-bar">
+        <div className="membership-header">
+          <button onClick={goBack} className="membership-btn-back">
+            <FaArrowLeft /> Back
+          </button>
+        </div>
+        <h2 className="membership-title">Membership Plan Manager</h2>
+        <div className="membership-actions">
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="membership-search-input"
+          />
+          <Link href="/admin/membership/add">
+            <button className="membership-add-button" onClick={onAdd}>
+              <FaPlus /> Add
+            </button>
+          </Link>
+          <button onClick={downloadPDF} className="membership-download-button">
+            <FaFilePdf /> PDF
+          </button>
+          <button onClick={downloadExcel} className="membership-download-button">
+            <FaFileExcel /> Excel
+          </button>
+          <button
+            onClick={() => {
+              if (selectedIds.length === 0) {
+                toast.warning("⚠️ Please select at least one plan to delete.");
+              } else {
+                handleDelete(selectedIds);
+              }
+            }}
+            className="membership-delete-button"
+          >
+            <FaTrash /> Delete ({selectedIds.length})
+          </button>
+        </div>
       </div>
+
+      <div className="membership-table-container">
+        <table className="membership-table">
+          <thead>
+            <tr>
+              <th>
+                <input type="checkbox" checked={selectAll} onChange={toggleSelectAll} />
+              </th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Discount %</th>
+              <th>Final Price</th>
+              <th>Duration</th>
+              <th>Plan Info</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredPlans.length === 0 ? (
+              <tr>
+                <td colSpan="9" className="membership-no-results">
+                  🔍 No plans found matching &quot;{searchTerm}&quot;
+                </td>
+              </tr>
+            ) : (
+              filteredPlans.map((plan) => (
+                <tr key={plan.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(plan.id)}
+                      onChange={() => toggleSelectOne(plan.id)}
+                    />
+                  </td>
+                  <td>{plan.name}</td>
+                  <td>₹{plan.price}</td>
+                  <td>{plan.discount}%</td>
+                  <td>₹{plan.final_price}</td>
+                  <td>{plan.duration}</td>
+                  <td>
+                    <button className="membership-view-button" onClick={() => handleViewInfo(plan.id)}>
+                      <FaEye /> View
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      className={`membership-status-toggle ${plan.status === "active" ? "active" : "inactive"}`}
+                      onClick={() => handleStatusToggle(plan)}
+                    >
+                      {plan.status === "active" ? (
+                        <><FaCheckCircle /> Active</>
+                      ) : (
+                        <><FaTimesCircle /> Inactive</>
+                      )}
+                    </button>
+                  </td>
+                  <td className="membership-action-buttons">
+                    <Link href={`/admin/membership/edit/${plan.id}`}>
+                      <button className="membership-edit-button" onClick={() => onEdit?.(plan.id)}>
+                        <FaEdit />
+                      </button>
+                    </Link>
+                    <button className="membership-delete-button" onClick={() => handleDelete([plan.id])}>
+                      <FaTrash />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="membership-modal-overlay">
+          <div className="membership-modal-content">
+            <button className="membership-close-button" onClick={() => setShowModal(false)}>
+              <FaArrowLeft /> Back
+            </button>
+            <h3 className="membership-modal-title">📋 Plan Information</h3>
+            {infoLoading ? (
+              <p>🔄 Loading...</p>
+            ) : planInfo ? (
+              <ul className="membership-plan-info-list">
+                {Object.entries(planInfo)
+                  .filter(([key]) => key.startsWith("line_"))
+                  .map(([key, value]) => (
+                    <li key={key}>✅ {value}</li>
+                  ))}
+              </ul>
+            ) : (
+              <p>No info available for this plan.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
-  )}
-</div>
 
 
 
